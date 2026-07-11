@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SportMath &#129354; UFC Fight Predictor</title>
+  <meta name="description" content="Pick two UFC fighters and get win probability, method and round predictions, stat comparisons and fair odds from an Elo model fitted on every UFC bout, running in your browser.">
+
+  <!-- social link previews (Open Graph + Twitter) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="SportMath 🥊 UFC Fight Predictor">
+  <meta property="og:description" content="Pick two fighters and get win probability, method &amp; round predictions and fair odds, fitted on every UFC bout in history.">
+  <meta property="og:url" content="https://xackerlud31337.github.io/worldcup-predictor/ufc/">
+  <meta property="og:image" content="https://xackerlud31337.github.io/worldcup-predictor/ufc/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SportMath 🥊 UFC Fight Predictor">
+  <meta name="twitter:description" content="Win probability, method &amp; round predictions and fair odds for any UFC matchup, computed live in your browser.">
+  <meta name="twitter:image" content="https://xackerlud31337.github.io/worldcup-predictor/ufc/og-image.png">
+
+  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#129354;</text></svg>">
+</head>
+<body>
+  <!-- glyphs come from CSS so link-preview crawlers don't scrape "i ♥" as page text -->
+  <button type="button" id="info-btn" class="info-fab" title="About the model &amp; what the numbers mean" aria-label="About the model"></button>
+  <button type="button" id="donate-btn" class="info-fab donate-fab" title="Support the project" aria-label="Support the project"></button>
+
+  <nav class="topnav" aria-label="Sports">
+    <a href="../" class="nav-brand">SportMath</a>
+    <a href="../football/" class="nav-item">&#9917;<span class="nav-txt"> Football</span></a>
+    <a href="./" class="nav-item active">&#129354;<span class="nav-txt"> UFC</span></a>
+  </nav>
+
+  <main class="wrap">
+    <header class="hero">
+      <h1>&#129354; UFC Fight Predictor</h1>
+      <p class="tagline">Pick two fighters and see who's likely to win, how, and when,
+        powered by an Elo model fitted on every UFC bout in history.</p>
+    </header>
+
+    <section class="card matchup-card">
+      <div class="controls" style="margin-top:0;padding-top:0;border-top:none;">
+        <div class="control">
+          <label for="division">Division</label>
+          <select id="division"><option value="">All divisions</option></select>
+        </div>
+        <div class="control toggle-control">
+          <label for="five-rounds" title="Main events and title fights are scheduled for 5 rounds instead of 3.">
+            5-round fight <span class="info">&#9432;</span>
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="five-rounds">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="control">
+          <label for="refit-btn" title="Download the latest community UFC dataset and rebuild ratings, records and profiles in your browser.">
+            Fight data <span class="info">&#9432;</span>
+          </label>
+          <button type="button" id="refit-btn" class="refit-tag">&#10227; Fetch latest</button>
+        </div>
+      </div>
+
+      <div class="matchup">
+        <div class="picker-block">
+          <label class="picker-label" for="home-search">Fighter 1</label>
+          <div class="picker" id="home-picker">
+            <button type="button" class="picker-toggle" aria-haspopup="listbox">
+              <span class="avatar">?</span>
+              <span class="picker-name muted">Choose fighter&hellip;</span>
+              <span class="chev">&#9662;</span>
+            </button>
+            <div class="picker-menu" hidden>
+              <input type="text" class="picker-search" id="home-search"
+                     placeholder="Search fighters&hellip;" autocomplete="off">
+              <ul class="picker-list" role="listbox"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="vs-block">
+          <span class="vs">VS</span>
+          <button type="button" id="swap-btn" class="swap" title="Swap fighters">&#8646;</button>
+        </div>
+
+        <div class="picker-block">
+          <label class="picker-label" for="away-search">Fighter 2</label>
+          <div class="picker" id="away-picker">
+            <button type="button" class="picker-toggle" aria-haspopup="listbox">
+              <span class="avatar red">?</span>
+              <span class="picker-name muted">Choose fighter&hellip;</span>
+              <span class="chev">&#9662;</span>
+            </button>
+            <div class="picker-menu" hidden>
+              <input type="text" class="picker-search" id="away-search"
+                     placeholder="Search fighters&hellip;" autocomplete="off">
+              <ul class="picker-list" role="listbox"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button id="calc-btn" class="calc" disabled>Compare</button>
+      <p id="status" class="status" hidden></p>
+    </section>
+
+    <section id="results" class="card results" hidden>
+      <h2 id="result-title" class="result-title"></h2>
+      <p id="venue-note" class="venue-note"></p>
+
+      <div class="wdl">
+        <div class="wdl-bar">
+          <div class="seg seg-home" id="seg-home"><span></span></div>
+          <div class="seg seg-away" id="seg-away"><span></span></div>
+        </div>
+        <div class="wdl-legend">
+          <div class="leg"><i class="dot dot-home"></i><b id="leg-home-name"></b> wins
+            <b id="leg-home-pct" class="pct"></b></div>
+          <div class="leg"><i class="dot dot-away"></i><b id="leg-away-name"></b> wins
+            <b id="leg-away-pct" class="pct"></b></div>
+        </div>
+      </div>
+
+      <div class="panels">
+        <div class="panel">
+          <h3>Tale of the tape</h3>
+          <div id="tape" class="tape"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Method &amp; round</h3>
+          <div id="method-list" class="method-grid" style="grid-template-columns:1fr;"></div>
+        </div>
+
+        <div class="panel panel-wide">
+          <h3>Career stats per fight time</h3>
+          <div id="stat-compare" class="stat-compare"></div>
+          <p class="xg-caption">significant strikes per minute (landed / absorbed), accuracy,
+            takedowns &amp; submission attempts per 15 minutes, knockdowns per 15 minutes</p>
+        </div>
+
+        <div class="panel panel-wide">
+          <h3>Betting view: fair odds</h3>
+          <div id="market-list" class="market-list"></div>
+          <p class="xg-caption">fair odds = the break-even price for each market. A real bet only has
+            value if a bookmaker offers <b>higher</b> odds than shown here. The model is fitted on
+            past bouts only; it knows nothing about camps, injuries or weight misses, and MMA is
+            the most upset-prone major sport. Not betting advice.</p>
+        </div>
+      </div>
+
+      <p id="trust-note" class="trust-note" hidden></p>
+    </section>
+
+    <aside class="card fixtures" id="fixtures">
+      <h3>&#129354; Upcoming UFC events</h3>
+      <div id="fixtures-list" class="fixtures-list">
+        <p class="fixtures-status">Loading&hellip;</p>
+      </div>
+    </aside>
+
+    <footer class="foot">
+      Probabilities are model estimates, not guarantees. That's why we watch the fights.
+      <span id="visit-count" class="visits" hidden></span>
+    </footer>
+  </main>
+
+  <div id="info-overlay" class="info-overlay" hidden>
+    <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-title">
+      <button type="button" id="info-close" class="info-close" aria-label="Close">&times;</button>
+      <h2 id="info-title">How this predictor works</h2>
+      <p class="info-body">
+        Every UFC bout ever fought (8,700+ of them) feeds a per-fighter <b>Elo rating</b>:
+        beat someone strong and your rating jumps; lose to a nobody and it drops,
+        with knockouts and submissions moving ratings more than decisions. The win
+        probability comes from the Elo gap adjusted for <b>ring rust and age</b>:
+        long layoffs and being the older fighter both count against you, with the
+        size of those penalties fitted on thousands of past bouts and verified on
+        fights the model had never seen. On top
+        of that, each fighter carries a <b>finish profile</b> describing how their wins happen
+        (KO, submission, decision, and in which round) and a <b>victim profile</b>
+        describing how they tend to lose. Mixing the winner's finishing tendencies with the loser's
+        vulnerabilities (smoothed toward league-wide base rates so small samples don't
+        scream 100%) gives the method and round predictions. Career stats (strikes
+        landed and absorbed per minute, takedowns, submission attempts) are shown for
+        the eye test. Everything runs in your browser; honest caveat: MMA is the most
+        upset-prone major sport, one punch changes everything, and even the best models
+        hover around 60% accuracy. Treat these as informed estimates, not prophecy.
+      </p>
+      <h3>What the numbers mean</h3>
+      <dl class="glossary">
+        <dt>Elo rating</dt>
+        <dd>A skill score updated after every bout based on the opponent's strength and
+          the result. League average is 1500; champions sit around 1750&ndash;1850. With
+          the ring-rust and age adjustments the model picked the winner in about 61%
+          of recent bouts it had never seen, a strong result for a results-only model
+          in a sport this chaotic.</dd>
+        <dt>SLpM / SApM</dt>
+        <dd>Significant strikes <b>landed</b> / <b>absorbed</b> per minute of fight time.
+          High SLpM with low SApM is the striker's ideal; the reverse is a red flag.</dd>
+        <dt>TD &amp; Sub per 15 min</dt>
+        <dd>Takedowns landed and submission attempts per 15 minutes, the grappling
+          pressure a fighter brings per full fight's worth of time.</dd>
+        <dt>Method &amp; round</dt>
+        <dd>How the fight ends, probability-wise: each fighter's own finishing habits
+          blended with how the opponent tends to lose, smoothed toward league base rates.
+          Round probabilities are shown for finishes only; "goes the distance" covers
+          the rest.</dd>
+        <dt>&#10227; Fetch latest</dt>
+        <dd>Downloads the newest community UFC dataset (~10&nbsp;MB, the same source the
+          site is built from) and rebuilds every rating, record and profile in your
+          browser. The dataset is community-maintained and usually updates within days
+          of an event; fights more recent than its last update can't appear until it
+          refreshes. The win-probability coefficients stay from the verified backtest.</dd>
+        <dt>5-round fight</dt>
+        <dd>Main events and title fights run 5 rounds instead of 3; more time means
+          more finishes and different round math. Flip this on for main events.</dd>
+        <dt>Betting view: fair odds</dt>
+        <dd>Model probability converted to decimal odds (1 &divide; probability), the
+          break-even price. A bookmaker's offer is only mathematically good if it's
+          <i>higher</i> than the fair odds shown. Not betting advice.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div id="donate-overlay" class="info-overlay" hidden>
+    <div class="info-modal donate-modal" role="dialog" aria-modal="true" aria-labelledby="donate-title">
+      <button type="button" id="donate-close" class="info-close" aria-label="Close">&times;</button>
+      <h2 id="donate-title">&#9829; Support the project</h2>
+      <p class="info-body">
+        SportMath is free, open and runs entirely in your browser. If it made the
+        fights a little more fun, you can chip in to keep it running and growing.
+        Any amount is hugely appreciated!
+      </p>
+      <div class="donate-option">
+        <span class="donate-label">&#8383; Bitcoin</span>
+        <div class="donate-row">
+          <code>bc1qwvxqvyzkzn9nn28hrmrd55s8ys7un9p4jnryll</code>
+          <button type="button" class="copy-btn" data-copy="bc1qwvxqvyzkzn9nn28hrmrd55s8ys7un9p4jnryll">Copy</button>
+        </div>
+      </div>
+      <div class="donate-option">
+        <span class="donate-label">Revolut</span>
+        <div class="donate-row">
+          <code>@ivanmandev77</code>
+          <button type="button" class="copy-btn" data-copy="@ivanmandev77">Copy</button>
+          <a class="copy-btn" href="https://revolut.me/ivanmandev77" target="_blank" rel="noopener">Open&nbsp;&#8599;</a>
+        </div>
+      </div>
+      <div class="donate-option">
+        <span class="donate-label">Made by</span>
+        <div class="donate-row">
+          <code>xackerlud.com</code>
+          <a class="copy-btn" href="https://www.xackerlud.com/" target="_blank" rel="noopener">Open&nbsp;&#8599;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="ufc_model_data.js?v=2"></script>
+  <script src="predictor.js?v=2"></script>
+  <script src="refit.js?v=1"></script>
+  <script src="app.js?v=5"></script>
+  <!-- GoatCounter analytics -->
+  <script data-goatcounter="https://xackerlud-worldcup.goatcounter.com/count"
+          async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

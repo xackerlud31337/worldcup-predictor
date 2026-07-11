@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SportMath: sports predictions from pure math</title>
+  <meta name="description" content="SportMath turns decades of sports data into honest win probabilities and fair odds with no bookmaker margin, everything computed live in your browser.">
+
+  <!-- social link previews (Open Graph + Twitter) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="SportMath: sports predictions from pure math">
+  <meta property="og:description" content="Honest win probabilities and fair odds computed from statistical models, live in your browser. Football now, UFC coming.">
+  <meta property="og:url" content="https://xackerlud31337.github.io/worldcup-predictor/">
+  <meta property="og:image" content="https://xackerlud31337.github.io/worldcup-predictor/og-home.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SportMath: sports predictions from pure math">
+  <meta name="twitter:description" content="Honest win probabilities and fair odds computed from statistical models, live in your browser.">
+  <meta name="twitter:image" content="https://xackerlud31337.github.io/worldcup-predictor/og-home.png">
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#129518;</text></svg>">
+  <style>
+    :root {
+      --bg: #060d15;
+      --bg2: #0b1725;
+      --ink: #16232f;
+      --muted: #6b7a88;
+      --line: #e4e9ee;
+      --accent: #3b82f6;      /* homepage is blue; football green, UFC purple */
+      --accent-dark: #2563eb;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   "Helvetica Neue", Arial, sans-serif;
+      color: #fff;
+      background:
+        radial-gradient(1100px 500px at 50% -100px, #1d3a5c 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      min-height: 100vh;
+    }
+
+    /* corner buttons (glyphs from CSS so crawlers don't scrape them) */
+    .info-fab {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      z-index: 60;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, .35);
+      background: rgba(255, 255, 255, .12);
+      color: #fff;
+      font: italic 700 1.1rem/1 Georgia, "Times New Roman", serif;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      transition: background .15s, transform .15s;
+    }
+    .info-fab:hover { background: rgba(255, 255, 255, .28); transform: scale(1.07); }
+    .info-fab::before { content: "i"; }
+    .donate-fab {
+      left: 18px;
+      right: auto;
+      font: 700 1rem/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #ff7b8a;
+    }
+    .donate-fab::before { content: "\2665"; }
+
+    /* top nav */
+    .topnav {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 55;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, .18);
+      background: rgba(255, 255, 255, .08);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      white-space: nowrap;
+    }
+    .nav-brand {
+      padding: 6px 12px;
+      font-weight: 800;
+      font-size: .92rem;
+      letter-spacing: .02em;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 999px;
+    }
+    .nav-brand:hover { background: rgba(255, 255, 255, .12); }
+    .nav-item {
+      padding: 6px 12px;
+      font-size: .88rem;
+      font-weight: 600;
+      color: #b9c7d4;
+      text-decoration: none;
+      border-radius: 999px;
+    }
+    a.nav-item:hover { color: #fff; background: rgba(255, 255, 255, .12); }
+    .nav-item.active { color: #fff; background: rgba(59, 130, 246, .35); }
+    .nav-item.soon { cursor: default; opacity: .65; }
+    .nav-item.soon i {
+      font-style: normal;
+      font-size: .62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      background: rgba(255, 255, 255, .18);
+      border-radius: 999px;
+      padding: 2px 6px;
+      margin-left: 3px;
+      vertical-align: 1px;
+    }
+
+    /* layout */
+    .wrap {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 120px 16px 48px;
+      text-align: center;
+    }
+    h1 { margin: 0 0 10px; font-size: 3rem; letter-spacing: .5px; }
+    .tagline {
+      margin: 0 auto 44px;
+      max-width: 620px;
+      color: #b9c7d4;
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+    .tagline b { color: #e8f0f7; }
+
+    .sports {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      text-align: left;
+    }
+    .sport-card {
+      display: block;
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .16);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: #e8f0f7;
+      border-radius: var(--radius);
+      padding: 26px 24px;
+      text-decoration: none;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .3);
+      transition: transform .15s, box-shadow .15s, background .15s;
+    }
+    a.sport-card:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 255, 255, .13);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .45);
+    }
+    .sport-icon { font-size: 2.4rem; line-height: 1; }
+    .sport-card h2 { margin: 12px 0 6px; font-size: 1.3rem; }
+    .sport-card p { margin: 0; color: #a9bccb; font-size: .92rem; line-height: 1.5; }
+    .sport-cta {
+      display: inline-block;
+      margin-top: 14px;
+      font-weight: 700;
+      font-size: .9rem;
+      color: #2fd58b;
+    }
+    .sport-card.disabled { opacity: .7; cursor: default; }
+    .soon-chip {
+      display: inline-block;
+      margin-top: 14px;
+      font-size: .72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      background: rgba(167, 139, 250, .18); /* purple — UFC's future accent */
+      color: #c4b5fd;
+      border-radius: 999px;
+      padding: 5px 10px;
+    }
+
+    .foot {
+      margin-top: 44px;
+      color: #7e93a6;
+      font-size: .82rem;
+      line-height: 1.6;
+    }
+
+    /* popups (shared look with the sport pages) */
+    .info-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      background: rgba(8, 18, 28, .55);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadein .2s ease;
+    }
+    @keyframes fadein { from { opacity: 0; } }
+    .info-overlay[hidden] { display: none; }
+    .info-modal {
+      position: relative;
+      max-width: 560px;
+      max-height: 82vh;
+      overflow-y: auto;
+      background: rgba(16, 30, 46, .88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, .22);
+      border-radius: var(--radius);
+      padding: 28px 30px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+      color: #e8f0f7;
+      text-align: left;
+    }
+    .info-modal h2 { margin: 0 0 12px; font-size: 1.3rem; padding-right: 28px; }
+    .info-body { margin: 0; line-height: 1.62; font-size: .95rem; }
+    .info-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      border: none;
+      background: none;
+      font-size: 1.6rem;
+      line-height: 1;
+      color: #9fb2c2;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+    .info-close:hover { color: #fff; }
+    .donate-option { margin-top: 18px; }
+    .donate-label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #9fb2c2;
+    }
+    .donate-row { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }
+    .donate-row code {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 8px;
+      padding: 9px 11px;
+      font-size: .82rem;
+      word-break: break-all;
+    }
+    .copy-btn {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, .16);
+      background: rgba(255, 255, 255, .08);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: .85rem;
+      font-weight: 700;
+      color: #e8f0f7;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: #7fb0ff; }
+    .copy-btn.copied { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+    @media (max-width: 640px) {
+      .info-fab { width: 36px; height: 36px; top: 12px; right: 12px; }
+      .donate-fab { left: 12px; right: auto; }
+      .topnav { top: 12px; padding: 4px 6px; }
+      .nav-txt { display: none; }
+      .nav-brand { font-size: .85rem; padding: 6px 9px; }
+      .nav-item { padding: 6px 9px; }
+      .wrap { padding-top: 96px; }
+      h1 { font-size: 2.1rem; }
+      .sports { grid-template-columns: 1fr; }
+      .info-overlay { padding: 12px; }
+      .info-modal { padding: 20px 18px; max-height: 88vh; }
+    }
+    @media (hover: none) {
+      body { background-attachment: scroll; }
+    }
+  </style>
+</head>
+<body>
+  <button type="button" id="info-btn" class="info-fab" title="What is SportMath?" aria-label="What is SportMath?"></button>
+  <button type="button" id="donate-btn" class="info-fab donate-fab" title="Support the project" aria-label="Support the project"></button>
+
+  <nav class="topnav" aria-label="Sports">
+    <a href="./" class="nav-brand">SportMath</a>
+    <a href="football/" class="nav-item">&#9917;<span class="nav-txt"> Football</span></a>
+    <a href="ufc/" class="nav-item">&#129354;<span class="nav-txt"> UFC</span></a>
+  </nav>
+
+  <main class="wrap">
+    <h1>&#129518; SportMath</h1>
+    <p class="tagline">Sports predictions from <b>pure math</b>: statistical models turn
+      decades of results into honest win probabilities and <b>fair odds</b> with no bookmaker
+      margin, computed live in your browser.</p>
+
+    <div class="sports">
+      <a class="sport-card" href="football/">
+        <span class="sport-icon">&#9917;</span>
+        <h2>Football</h2>
+        <p>Pick any two national teams and get win/draw/loss odds, expected goals, most likely
+          scorelines, victory margins and fair odds, all from a Dixon-Coles model fitted on a
+          century of international football.</p>
+        <span class="sport-cta">Open the predictor &rarr;</span>
+      </a>
+
+      <a class="sport-card" href="ufc/">
+        <span class="sport-icon">&#129354;</span>
+        <h2>UFC</h2>
+        <p>Compare fighters by weight class (significant strikes, takedowns, finish rates)
+          and get win probability with method and round predictions, fitted on every
+          UFC bout in history.</p>
+        <span class="sport-cta" style="color:#b79cff;">Open the predictor &rarr;</span>
+      </a>
+    </div>
+
+    <footer class="foot">
+      Probabilities are model estimates, not guarantees. That's why we watch the games.
+    </footer>
+  </main>
+
+  <div id="info-overlay" class="info-overlay" hidden>
+    <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-title">
+      <button type="button" id="info-close" class="info-close" aria-label="Close">&times;</button>
+      <h2 id="info-title">What is SportMath?</h2>
+      <p class="info-body">
+        SportMath is a collection of sports predictors built on one idea: <b>probabilities,
+        not opinions</b>. Each sport section fits a statistical model on decades of real
+        results (for football, a Dixon-Coles goal model over 30,000+ international
+        matches) and turns any matchup you pick into win probabilities, expected
+        scorelines and <b>fair odds</b>: the break-even betting price implied by the math,
+        before any bookmaker adds their margin. Compare those fair odds with a bookmaker's
+        and you can see instantly which side of the price you're on. Everything is computed
+        live in your browser: no server, no login, no tracking of who you are. Each
+        sport's page has its own &#9432; button explaining exactly how its model works.
+        Estimates, not guarantees. That's why we watch the games.
+      </p>
+    </div>
+  </div>
+
+  <div id="donate-overlay" class="info-overlay" hidden>
+    <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="donate-title">
+      <button type="button" id="donate-close" class="info-close" aria-label="Close">&times;</button>
+      <h2 id="donate-title">&#9829; Support the project</h2>
+      <p class="info-body">
+        SportMath is free, open and runs entirely in your browser. If it made the games
+        a little more fun, you can chip in to keep it running and growing. Any
+        amount is hugely appreciated!
+      </p>
+      <div class="donate-option">
+        <span class="donate-label">&#8383; Bitcoin</span>
+        <div class="donate-row">
+          <code>bc1qwvxqvyzkzn9nn28hrmrd55s8ys7un9p4jnryll</code>
+          <button type="button" class="copy-btn" data-copy="bc1qwvxqvyzkzn9nn28hrmrd55s8ys7un9p4jnryll">Copy</button>
+        </div>
+      </div>
+      <div class="donate-option">
+        <span class="donate-label">Revolut</span>
+        <div class="donate-row">
+          <code>@ivanmandev77</code>
+          <button type="button" class="copy-btn" data-copy="@ivanmandev77">Copy</button>
+          <a class="copy-btn" href="https://revolut.me/ivanmandev77" target="_blank" rel="noopener">Open&nbsp;&#8599;</a>
+        </div>
+      </div>
+      <div class="donate-option">
+        <span class="donate-label">Made by</span>
+        <div class="donate-row">
+          <code>xackerlud.com</code>
+          <a class="copy-btn" href="https://www.xackerlud.com/" target="_blank" rel="noopener">Open&nbsp;&#8599;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const infoOverlay = document.getElementById("info-overlay");
+    const donateOverlay = document.getElementById("donate-overlay");
+    document.getElementById("info-btn").onclick = () => { infoOverlay.hidden = false; };
+    document.getElementById("info-close").onclick = () => { infoOverlay.hidden = true; };
+    document.getElementById("donate-btn").onclick = () => { donateOverlay.hidden = false; };
+    document.getElementById("donate-close").onclick = () => { donateOverlay.hidden = true; };
+    [infoOverlay, donateOverlay].forEach((ov) => {
+      ov.addEventListener("click", (e) => { if (e.target === ov) ov.hidden = true; });
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { infoOverlay.hidden = true; donateOverlay.hidden = true; }
+    });
+    document.querySelectorAll(".copy-btn[data-copy]").forEach((btn) => {
+      btn.onclick = async () => {
+        try { await navigator.clipboard.writeText(btn.dataset.copy); }
+        catch (e) {
+          const ta = document.createElement("textarea");
+          ta.value = btn.dataset.copy;
+          document.body.appendChild(ta); ta.select();
+          document.execCommand("copy"); ta.remove();
+        }
+        const old = btn.textContent;
+        btn.textContent = "Copied!";
+        btn.classList.add("copied");
+        setTimeout(() => { btn.textContent = old; btn.classList.remove("copied"); }, 1500);
+      };
+    });
+  </script>
+  <!-- GoatCounter analytics -->
+  <script data-goatcounter="https://xackerlud-worldcup.goatcounter.com/count"
+          async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
