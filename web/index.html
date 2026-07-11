@@ -9,7 +9,7 @@
   <!-- social link previews (Open Graph + Twitter) -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="SportMath: sports predictions from pure math">
-  <meta property="og:description" content="Honest win probabilities and fair odds computed from statistical models, live in your browser. Football now, UFC coming.">
+  <meta property="og:description" content="Honest win probabilities and fair odds computed from statistical models, live in your browser. Football, UFC and NBA.">
   <meta property="og:url" content="https://xackerlud31337.github.io/worldcup-predictor/">
   <meta property="og:image" content="https://xackerlud31337.github.io/worldcup-predictor/og-home.png">
   <meta property="og:image:width" content="1200">
@@ -142,7 +142,7 @@
 
     .sports {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: 20px;
       text-align: left;
     }
@@ -308,6 +308,7 @@
     <a href="./" class="nav-brand">SportMath</a>
     <a href="football/" class="nav-item">&#9917;<span class="nav-txt"> Football</span></a>
     <a href="ufc/" class="nav-item">&#129354;<span class="nav-txt"> UFC</span></a>
+    <a href="nba/" class="nav-item">&#127936;<span class="nav-txt"> NBA</span></a>
   </nav>
 
   <main class="wrap">
@@ -333,6 +334,15 @@
           and get win probability with method and round predictions, fitted on every
           UFC bout in history.</p>
         <span class="sport-cta" style="color:#b79cff;">Open the predictor &rarr;</span>
+      </a>
+
+      <a class="sport-card" href="nba/">
+        <span class="sport-icon">&#127936;</span>
+        <h2>NBA</h2>
+        <p>Pick any two NBA teams and get win probability, predicted score, fair
+          spread and totals with victory-margin odds, from an Elo model fitted
+          on two decades of NBA games.</p>
+        <span class="sport-cta" style="color:#ffb26b;">Open the predictor &rarr;</span>
       </a>
     </div>
 

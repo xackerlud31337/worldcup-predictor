@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SportMath &#127936; NBA Game Predictor</title>
+  <meta name="description" content="Pick two NBA teams and get win probability, predicted score, fair spread, totals and victory-margin odds from an Elo model fitted on two decades of NBA games, running in your browser.">
+
+  <!-- social link previews (Open Graph + Twitter) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="SportMath 🏀 NBA Game Predictor">
+  <meta property="og:description" content="Pick two teams and get win probability, predicted score, fair spread and totals, fitted on two decades of NBA games.">
+  <meta property="og:url" content="https://xackerlud31337.github.io/worldcup-predictor/nba/">
+  <meta property="og:image" content="https://xackerlud31337.github.io/worldcup-predictor/nba/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SportMath 🏀 NBA Game Predictor">
+  <meta name="twitter:description" content="Win probability, predicted score, fair spread and totals for any NBA matchup, computed live in your browser.">
+  <meta name="twitter:image" content="https://xackerlud31337.github.io/worldcup-predictor/nba/og-image.png">
+
+  <link rel="stylesheet" href="style.css?v=1">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#127936;</text></svg>">
+</head>
+<body>
+  <!-- glyphs come from CSS so link-preview crawlers don't scrape "i ♥" as page text -->
+  <button type="button" id="info-btn" class="info-fab" title="About the model &amp; what the numbers mean" aria-label="About the model"></button>
+  <button type="button" id="donate-btn" class="info-fab donate-fab" title="Support the project" aria-label="Support the project"></button>
+
+  <nav class="topnav" aria-label="Sports">
+    <a href="../" class="nav-brand">SportMath</a>
+    <a href="../football/" class="nav-item">&#9917;<span class="nav-txt"> Football</span></a>
+    <a href="../ufc/" class="nav-item">&#129354;<span class="nav-txt"> UFC</span></a>
+    <a href="./" class="nav-item active">&#127936;<span class="nav-txt"> NBA</span></a>
+  </nav>
+
+  <main class="wrap">
+    <header class="hero">
+      <h1>&#127936; NBA Game Predictor</h1>
+      <p class="tagline">Pick two teams and see who's likely to win and by how much,
+        powered by an Elo model fitted on two decades of NBA games.</p>
+    </header>
+
+    <section class="card matchup-card">
+      <div class="controls" style="margin-top:0;padding-top:0;border-top:none;">
+        <div class="control">
+          <label for="conference">Conference</label>
+          <select id="conference">
+            <option value="">All teams</option>
+            <option value="East">Eastern</option>
+            <option value="West">Western</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="venue" title="Home court is worth roughly 2.5 points; pick who hosts, or a neutral floor.">
+            Venue <span class="info">&#9432;</span>
+          </label>
+          <select id="venue">
+            <option value="home" selected>Team 1 at home</option>
+            <option value="away">Team 2 at home</option>
+            <option value="neutral">Neutral court</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="matchup">
+        <div class="picker-block">
+          <label class="picker-label" for="home-search">Team 1</label>
+          <div class="picker" id="home-picker">
+            <button type="button" class="picker-toggle" aria-haspopup="listbox">
+              <span class="avatar">?</span>
+              <span class="picker-name muted">Choose team&hellip;</span>
+              <span class="chev">&#9662;</span>
+            </button>
+            <div class="picker-menu" hidden>
+              <input type="text" class="picker-search" id="home-search"
+                     placeholder="Search teams&hellip;" autocomplete="off">
+              <ul class="picker-list" role="listbox"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="vs-block">
+          <span class="vs">VS</span>
+          <button type="button" id="swap-btn" class="swap" title="Swap teams">&#8646;</button>
+        </div>
+
+        <div class="picker-block">
+          <label class="picker-label" for="away-search">Team 2</label>
+          <div class="picker" id="away-picker">
+            <button type="button" class="picker-toggle" aria-haspopup="listbox">
+              <span class="avatar red">?</span>
+              <span class="picker-name muted">Choose team&hellip;</span>
+              <span class="chev">&#9662;</span>
+            </button>
+            <div class="picker-menu" hidden>
+              <input type="text" class="picker-search" id="away-search"
+                     placeholder="Search teams&hellip;" autocomplete="off">
+              <ul class="picker-list" role="listbox"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button id="calc-btn" class="calc" disabled>Compare</button>
+      <p id="status" class="status" hidden></p>
+    </section>
+
+    <section id="results" class="card results" hidden>
+      <h2 id="result-title" class="result-title"></h2>
+      <p id="venue-note" class="venue-note"></p>
+
+      <div class="wdl">
+        <div class="wdl-bar">
+          <div class="seg seg-home" id="seg-home"><span></span></div>
+          <div class="seg seg-away" id="seg-away"><span></span></div>
+        </div>
+        <div class="wdl-legend">
+          <div class="leg"><i class="dot dot-home"></i><b id="leg-home-name"></b> wins
+            <b id="leg-home-pct" class="pct"></b></div>
+          <div class="leg"><i class="dot dot-away"></i><b id="leg-away-name"></b> wins
+            <b id="leg-away-pct" class="pct"></b></div>
+        </div>
+      </div>
+
+      <div class="panels">
+        <div class="panel">
+          <h3>Team sheet</h3>
+          <div id="tape" class="tape"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Predicted score &amp; margin</h3>
+          <div id="pred-score" class="score-line"></div>
+          <p id="score-note" class="score-note"></p>
+          <div id="margin-list" class="method-grid" style="grid-template-columns:1fr;"></div>
+        </div>
+
+        <div class="panel panel-wide">
+          <h3>Season stats</h3>
+          <div id="stat-compare" class="stat-compare"></div>
+          <p class="xg-caption">points scored and allowed per game over the season shown on the
+            team sheet; "recent form" weighs the latest games heaviest, which is what the
+            totals prediction uses</p>
+        </div>
+
+        <div class="panel panel-wide">
+          <h3>Betting view: fair odds</h3>
+          <div id="market-list" class="market-list"></div>
+          <p class="xg-caption">fair odds = the break-even price for each market. A real bet only has
+            value if a bookmaker offers <b>higher</b> odds than shown here. The model is fitted on
+            past games only; it knows nothing about trades, injuries, rest days or who's tanking.
+            Not betting advice.</p>
+        </div>
+      </div>
+
+      <p id="trust-note" class="trust-note" hidden></p>
+    </section>
+
+    <aside class="card fixtures" id="fixtures">
+      <h3>&#127936; Upcoming NBA games</h3>
+      <div id="fixtures-list" class="fixtures-list">
+        <p class="fixtures-status">Loading&hellip;</p>
+      </div>
+    </aside>
+
+    <footer class="foot">
+      Probabilities are model estimates, not guarantees. That's why we watch the games.
+      <span id="visit-count" class="visits" hidden></span>
+    </footer>
+  </main>
+
+  <div id="info-overlay" class="info-overlay" hidden>
+    <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-title">
+      <button type="button" id="info-close" class="info-close" aria-label="Close">&times;</button>
+      <h2 id="info-title">How this predictor works</h2>
+      <p class="info-body">
+        Every NBA game since 2002 (regular season and playoffs, 30,000+ of them) feeds a
+        per-team <b>Elo rating</b>: beat a strong team and your rating jumps, lose to a
+        weak one and it drops, with blowout wins moving ratings more than squeakers.
+        Ratings carry between seasons but get pulled a quarter of the way back to average
+        each summer, because rosters change. The Elo gap (plus a fitted <b>home-court
+        bonus</b>) converts into an expected <b>point margin</b> with a known spread, and
+        that one bell curve produces everything you see: the win probability, the fair
+        point spread and the victory-margin odds, so the numbers can never contradict each
+        other. The <b>game total</b> comes from each team's recent scoring and defensive
+        rates, with the freshest games weighted heaviest. Everything runs in your browser;
+        honest caveat: the model only sees results, not injuries, trades or rest days.
+        Treat these as informed estimates, not prophecy.
+      </p>
+      <h3>What the numbers mean</h3>
+      <dl class="glossary">
+        <dt>Elo rating</dt>
+        <dd>A skill score updated after every game based on the opponent's strength, the
+          result and the margin. League average is about 1500; champions usually sit
+          1700+. On recent seasons the model had never seen, it picked the winner in
+          roughly two thirds of games, about as good as results-only NBA models get.</dd>
+        <dt>Predicted score</dt>
+        <dd>The most likely final score: the total comes from both teams' recent scoring
+          rates, the gap between the two numbers from the Elo difference. Real games
+          scatter around it by a dozen points either way, which the odds account for.</dd>
+        <dt>Fair spread</dt>
+        <dd>The handicap that makes the game a coin flip by the model. If a bookmaker's
+          line differs a lot from it, the model disagrees with the market. That's either
+          an edge or something the model can't see, like an injury report.</dd>
+        <dt>Victory margin</dt>
+        <dd>The chance the game lands in each winning-margin band, read off the same bell
+          curve as the win probability.</dd>
+        <dt>Venue</dt>
+        <dd>Home court in the NBA is worth roughly 2.5 points, fitted from two decades of
+          games rather than assumed. Pick who hosts, or a neutral floor for
+          hypotheticals.</dd>
+        <dt>Betting view: fair odds</dt>
+        <dd>Model probability converted to decimal odds (1 &divide; probability), the
+          break-even price. A bookmaker's offer is only mathematically good if it's
+          <i>higher</i> than the fair odds shown. Not betting advice.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div id="donate-overlay" class="info-overlay" hidden>
+    <div class="info-modal donate-modal" role="dialog" aria-modal="true" aria-labelledby="donate-title">
+      <button type="button" id="donate-close" class="info-close" aria-label="Close">&times;</button>
+      <h2 id="donate-title">&#9829; Support the project</h2>
+      <p class="info-body">
+        SportMath is free, open and runs entirely in your browser. If it made the
+        games a little more fun, you can chip in to keep it running and growing.
+        Any amount is hugely appreciated!
+      </p>
+      <div class="donate-option">
+        <span class="donate-label">&#8383; Bitcoin</span>
+        <div class="donate-row">
+          <code>bc1qwvxqvyzkzn9nn28hrmrd55s8ys7un9p4jnryll</code>
+          <button type="button" class="copy-btn" data-copy="bc1qwvxqvyzkzn9nn28hrmrd55s8ys7un9p4jnryll">Copy</button>
+        </div>
+      </div>
+      <div class="donate-option">
+        <span class="donate-label">Revolut</span>
+        <div class="donate-row">
+          <code>@ivanmandev77</code>
+          <button type="button" class="copy-btn" data-copy="@ivanmandev77">Copy</button>
+          <a class="copy-btn" href="https://revolut.me/ivanmandev77" target="_blank" rel="noopener">Open&nbsp;&#8599;</a>
+        </div>
+      </div>
+      <div class="donate-option">
+        <span class="donate-label">Made by</span>
+        <div class="donate-row">
+          <code>xackerlud.com</code>
+          <a class="copy-btn" href="https://www.xackerlud.com/" target="_blank" rel="noopener">Open&nbsp;&#8599;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="nba_model_data.js?v=1"></script>
+  <script src="predictor.js?v=1"></script>
+  <script src="app.js?v=1"></script>
+  <!-- GoatCounter analytics -->
+  <script data-goatcounter="https://xackerlud-worldcup.goatcounter.com/count"
+          async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
