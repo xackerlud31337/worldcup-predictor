@@ -1,4 +1,9 @@
-# World Cup Match-Result Predictor
+# SportMath
+
+**Live site: [xackerlud31337.github.io/worldcup-predictor](https://xackerlud31337.github.io/worldcup-predictor/)** —
+football, UFC and NBA predictors running entirely in the browser.
+
+## World Cup Match-Result Predictor
 
 A Dixon-Coles Poisson model that predicts **Win / Draw / Loss** probabilities for
 international football matches, validated by back-testing on the 2018 and 2022
