@@ -219,15 +219,36 @@ static bundle to `web/clubs/` for the site:
 - **Elo prior**: a K=20 club Elo doubles as the naive baseline and as the
   blend target for thin-data teams (UCL qualifiers from uncovered leagues).
 
+- **xG fit (site default)**: a second bundle is fitted on the blended target
+  `0.8·xG + 0.2·goals` using Understat's per-match team xG (98% coverage of
+  big-five matches). Goals are a ~55-events-per-season sample, so they carry
+  finishing luck; xG doesn't. It beat the goals-only fit on every back-test
+  segment, so the site's "Use xG data" toggle is on by default. The alpha is
+  chosen by back-test and the bundle is only exported when it wins.
+- **Market benchmark**: the football-data CSVs carry closing odds
+  (Pinnacle/Bet365), which after de-vigging are the strongest public forecast
+  in existence. The back-test scores them on the same matches — the honest
+  ceiling for any model.
+
 Back-test, fitting only on data before the 2025-26 season and predicting its
 Premier League + Champions League matches (569 games):
 
-| Segment | Model        | Log-loss | Brier  | Accuracy |
-|---------|--------------|---------:|-------:|---------:|
-| All     | Dixon-Coles  |   1.0148 | 0.6050 |    51.7% |
-| All     | Elo baseline |   1.0517 | 0.6297 |    47.6% |
-| EPL     | Dixon-Coles  |   1.0518 | 0.6322 |    47.1% |
-| UCL     | Dixon-Coles  |   0.9403 | 0.5504 |    60.8% |
+| Segment | Model            | Log-loss | Brier  | Accuracy |
+|---------|------------------|---------:|-------:|---------:|
+| All     | Dixon-Coles      |   1.0148 | 0.6050 |    51.7% |
+| All     | DC + xG (α=0.8)  |   1.0132 | 0.6036 |    52.5% |
+| All     | Elo baseline     |   1.0517 | 0.6297 |    47.6% |
+| UCL     | DC + xG (α=0.8)  |   0.9402 | 0.5500 |    60.3% |
+| EPL     | DC + xG (α=0.8)  |   1.0495 | 0.6302 |    48.7% |
+| EPL     | Bookmakers       |   1.0173 | 0.6110 |    49.2% |
+
+The bookmaker row is the reality check: the closing market still beats the
+model (as it beats every public model), and the xG fit closes about 10% of
+that gap. On the site, loading an upcoming fixture shows a **model vs
+bookmaker** panel with live DraftKings prices from ESPN and the model's
+implied edge on each outcome — labelled as a conversation starter, not
+betting advice, because a big edge usually means the model is missing news
+the market has.
 
 ```bash
 python3 clubs_build.py               # build from cache + back-test + export

@@ -19,7 +19,7 @@
   <meta name="twitter:description" content="Premier League &amp; Champions League: win odds, expected goals and most likely scorelines for any club matchup, computed live in your browser.">
   <meta name="twitter:image" content="https://xackerlud31337.github.io/worldcup-predictor/clubs/og-image.png">
 
-  <link rel="stylesheet" href="style.css?v=1">
+  <link rel="stylesheet" href="style.css?v=2">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#127942;</text></svg>">
 </head>
 <body>
@@ -100,6 +100,16 @@
             <span class="slider"></span>
           </label>
         </div>
+
+        <div class="control toggle-control">
+          <label for="use-xg" title="Team strengths fitted on expected goals instead of actual goals — filters out finishing luck. On by default because it back-tests better.">
+            Use xG data <span class="info">&#9432;</span>
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="use-xg" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
 
       <button id="calc-btn" class="calc" disabled>Calculate</button>
@@ -171,6 +181,16 @@
           <h3>Victory margin</h3>
           <div id="margin-chart" class="margin-chart"></div>
           <p class="xg-caption">exact scorelines split a favourite's dominance into many small slices; this view groups them back together</p>
+        </div>
+
+        <div class="panel panel-wide" id="market-cmp" hidden>
+          <h3>Model vs bookmaker</h3>
+          <div id="market-cmp-list" class="market-list"></div>
+          <p class="xg-caption">bookmaker prices come from ESPN (DraftKings) for this
+            fixture. "Edge" is the model's expected profit per unit staked at the
+            bookmaker's price: positive means the model thinks the price is too long.
+            The market knows lineups and news the model doesn't — treat edges as
+            conversation starters, not bets. Not betting advice.</p>
         </div>
 
         <div class="panel panel-wide">
@@ -268,6 +288,23 @@
           can't be measured from xG). Player data covers the big-five leagues, so clubs
           from other countries show no squad list. Ratings reflect last season's squads
           until the new season's data starts accumulating.</dd>
+        <dt>Use xG data</dt>
+        <dd>Switches to team strengths fitted on <b>expected goals</b> (Understat's
+          shot-quality model) blended with actual goals, instead of goals alone.
+          Goals are a tiny sample — a whole season is ~55 scoring events — so a
+          team's goal tally carries a lot of finishing luck; xG measures the
+          chances created and conceded. In back-testing the xG fit beat the
+          goals-only fit on every segment, so it is <b>on by default</b>. Understat
+          covers the big-five leagues (98% of fitted league matches); Champions
+          League and feeder-league games always use real goals.</dd>
+        <dt>Model vs bookmaker</dt>
+        <dd>When you load an upcoming fixture from the list, the model's fair odds
+          sit next to the bookmaker's actual prices. A bookmaker price <i>above</i>
+          the fair odds means the model considers it generous ("edge" &gt; 0). Keep
+          the humility in mind: closing bookmaker odds are the most accurate
+          public forecast in football — in our own back-test they beat this model
+          — so a large edge more often means the model is missing something
+          (an injury, a rotated lineup) than that the bookmaker is wrong.</dd>
         <dt>Cross-league matchups</dt>
         <dd>Comparing clubs from different leagues (say Liverpool vs Bayern) leans on
           the Champions League games linking those leagues. That works well for regular
@@ -311,10 +348,10 @@
     </div>
   </div>
 
-  <script src="club_model_data.js?v=1"></script>
+  <script src="club_model_data.js?v=2"></script>
   <script src="players_data.js?v=1"></script>
   <script src="predictor.js?v=1"></script>
-  <script src="app.js?v=1"></script>
+  <script src="app.js?v=2"></script>
   <!-- GoatCounter analytics (private dashboard at xackerlud-worldcup.goatcounter.com) -->
   <script data-goatcounter="https://xackerlud-worldcup.goatcounter.com/count"
           async src="//gc.zgo.at/count.js"></script>

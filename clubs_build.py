@@ -165,6 +165,44 @@ ALIASES = {
 }
 
 
+# Understat spellings that differ from both football-data and ESPN.
+UNDERSTAT_ALIASES = {
+    "RasenBallsport Leipzig": "RB Leipzig",
+    "Borussia M.Gladbach": "Borussia Mönchengladbach",
+    "Paris Saint Germain": "Paris Saint-Germain",
+    "Parma Calcio 1913": "Parma",
+    "Atletico Madrid": "Atlético Madrid",
+    "Alaves": "Alavés",
+    "Leganes": "Leganés",
+    "Cadiz": "Cádiz",
+    "Almeria": "Almería",
+    "Mainz 05": "1. FSV Mainz 05",
+    "Union Berlin": "1. FC Union Berlin",
+    "Freiburg": "SC Freiburg",
+    "Augsburg": "FC Augsburg",
+    "Wolfsburg": "VfL Wolfsburg",
+    "Hoffenheim": "TSG Hoffenheim",
+    "Bochum": "VfL Bochum",
+    "Darmstadt": "SV Darmstadt 98",
+    "Heidenheim": "1. FC Heidenheim 1846",
+    "FC Heidenheim": "1. FC Heidenheim 1846",
+    "Hamburger SV": "Hamburg SV",
+    "St. Pauli": "FC St. Pauli",
+    "Fortuna Duesseldorf": "Fortuna Düsseldorf",
+    "Inter": "Internazionale",
+    "Verona": "Hellas Verona",
+    "Leeds": "Leeds United",
+    "Luton": "Luton Town",
+    "Norwich": "Norwich City",
+    "Saint-Etienne": "Saint-Étienne",
+}
+
+
+def uscanon(name: str) -> str:
+    """Canonical name for an Understat team spelling."""
+    return canon(UNDERSTAT_ALIASES.get(name, name))
+
+
 def _norm(name: str) -> str:
     """Accent-, case- and punctuation-insensitive key for fuzzy matching."""
     s = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
@@ -241,6 +279,21 @@ def load_league_season(code: str, start_year: int, force: bool) -> pd.DataFrame:
     })
     out["neutral"] = False
     out["comp"] = code
+
+    # Closing odds -> devigged market probabilities (the benchmark every model
+    # should be measured against). Row-wise preference Pinnacle > Bet365 >
+    # market average — bookmaker columns come and go mid-season in these files.
+    out["mkt_h"] = out["mkt_d"] = out["mkt_a"] = np.nan
+    for pre in ("PS", "B365", "Avg"):
+        cols = [pre + "H", pre + "D", pre + "A"]
+        if not all(c in df.columns for c in cols):
+            continue
+        inv = 1.0 / df[cols].apply(pd.to_numeric, errors="coerce")
+        tot = inv.sum(axis=1)
+        need = out["mkt_h"].isna().to_numpy()
+        for i, side in enumerate(("mkt_h", "mkt_d", "mkt_a")):
+            probs = (inv[cols[i]] / tot).to_numpy()
+            out.loc[need & pd.notna(probs), side] = probs[need & pd.notna(probs)]
     return out
 
 
@@ -359,6 +412,74 @@ def load_scoreboard_logos(last_season: int, force: bool) -> dict[str, str]:
     return logos
 
 
+US_LEAGUE = {"E0": "EPL", "SP1": "La_liga", "D1": "Bundesliga",
+             "I1": "Serie_A", "F1": "Ligue_1"}
+US_DATA = "https://understat.com/getLeagueData/{lg}/{season}"
+
+
+def fetch_us_matches(code: str, start_year: int, force: bool) -> list[dict]:
+    """Per-match team xG from Understat (big-five leagues, 2014+)."""
+    lg = US_LEAGUE[code]
+    path = os.path.join(CACHE, f"usmatches_{lg}_{start_year}.json")
+    if force or not os.path.exists(path):
+        req = urllib.request.Request(
+            US_DATA.format(lg=lg, season=start_year),
+            headers={"User-Agent": "Mozilla/5.0",
+                     "X-Requested-With": "XMLHttpRequest"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                raw = resp.read()
+            if raw[:2] == b"\x1f\x8b":
+                import gzip
+                raw = gzip.decompress(raw)
+            dates = json.loads(raw).get("dates", [])
+        except Exception as e:
+            print(f"  [warn] understat {lg} {start_year}: {e}")
+            dates = []
+        games = [{
+            "date": d["datetime"][:10],
+            "home": d["h"]["title"], "away": d["a"]["title"],
+            "xg_h": float(d["xG"]["h"]), "xg_a": float(d["xG"]["a"]),
+        } for d in dates if d.get("isResult") and d.get("xG", {}).get("h") is not None]
+        with open(path, "w") as f:
+            json.dump(games, f)
+        if games:
+            print(f"  understat {lg} {start_year}: {len(games)} matches with xG")
+    with open(path) as f:
+        return json.load(f)
+
+
+def merge_xg(df: pd.DataFrame, force: bool) -> pd.DataFrame:
+    """Attach Understat team xG to the big-five league matches (nearest-date
+    match on the canonical home/away pair, tolerating small date offsets)."""
+    lookup: dict[tuple[str, str], list] = {}
+    cur = current_season_start()
+    for code in US_LEAGUE:
+        for start in range(FIRST_SEASON, cur + 1):
+            for g in fetch_us_matches(code, start, force and start >= cur - 1):
+                key = (uscanon(g["home"]), uscanon(g["away"]))
+                lookup.setdefault(key, []).append(
+                    (pd.Timestamp(g["date"]), g["xg_h"], g["xg_a"]))
+
+    xg_h = np.full(len(df), np.nan)
+    xg_a = np.full(len(df), np.nan)
+    big5 = df["comp"].isin(US_LEAGUE).to_numpy()
+    dates = df["date"].to_numpy()
+    homes = df["home_team"].to_numpy()
+    aways = df["away_team"].to_numpy()
+    for i in np.flatnonzero(big5):
+        cands = lookup.get((homes[i], aways[i]))
+        if not cands:
+            continue
+        best = min(cands, key=lambda c: abs((c[0] - dates[i]).days))
+        if abs((best[0] - dates[i]).days) <= 3:
+            xg_h[i], xg_a[i] = best[1], best[2]
+    out = df.assign(xg_home=xg_h, xg_away=xg_a)
+    cov = out.loc[big5, "xg_home"].notna().mean() if big5.any() else 0.0
+    print(f"[xg] Understat coverage of big-five matches: {cov:.1%}")
+    return out
+
+
 def load_all(force_current: bool) -> pd.DataFrame:
     os.makedirs(CACHE, exist_ok=True)
     cur = current_season_start()
@@ -370,7 +491,7 @@ def load_all(force_current: bool) -> pd.DataFrame:
         frames.append(load_ucl_season(start, force))
     df = pd.concat([f for f in frames if not f.empty], ignore_index=True)
     df = df.sort_values("date").reset_index(drop=True)
-    return df
+    return merge_xg(df, force_current)
 
 
 # -------------------------------------------------------------------- elo --
@@ -428,11 +549,31 @@ def add_weights(df: pd.DataFrame, asof: pd.Timestamp) -> pd.DataFrame:
     return df.assign(weight=decay * comp_w)
 
 
+def dc_fit(df: pd.DataFrame, asof: pd.Timestamp, xg_alpha: float | None = None):
+    """Dixon-Coles fit on matches before `asof`. With xg_alpha, matches that
+    have Understat xG use the blended target alpha*xG + (1-alpha)*goals —
+    xG strips finishing luck, and unlike the international --xg mode it
+    covers EVERY big-five league match, not a handful of tournaments."""
+    past = add_weights(df[df["date"] < asof], asof)
+    if xg_alpha is not None:
+        has = past["xg_home"].notna() & past["xg_away"].notna()
+        past = past.assign(
+            home_target=np.where(has, xg_alpha * past["xg_home"]
+                                 + (1 - xg_alpha) * past["home_goals"],
+                                 past["home_goals"]),
+            away_target=np.where(has, xg_alpha * past["xg_away"]
+                                 + (1 - xg_alpha) * past["away_goals"],
+                                 past["away_goals"]),
+        )
+    m = model.fit(past, ridge=CLUB_RIDGE)
+    m.goal_scale = 1.0   # club data has no qualifier drag; see module docstring
+    return m
+
+
 def fit_bundle(df: pd.DataFrame, asof: pd.Timestamp):
     """Fit DC + Elo on matches strictly before `asof`; returns (model, elo, draw)."""
     past = df[df["date"] < asof]
-    m = model.fit(add_weights(past, asof), ridge=CLUB_RIDGE)
-    m.goal_scale = 1.0   # club data has no qualifier drag; see module docstring
+    m = dc_fit(df, asof)
     ratings = club_elo(past)
     recent = past[past["date"] >= asof - pd.Timedelta(days=730)]
     draw_params = fit_draw_params(recent, ratings)
@@ -441,55 +582,79 @@ def fit_bundle(df: pd.DataFrame, asof: pd.Timestamp):
 
 # --------------------------------------------------------------- back-test --
 
-def backtest(df: pd.DataFrame, test_season: int, verbose: bool = True) -> dict:
+def backtest(df: pd.DataFrame, test_season: int, verbose: bool = True,
+             xg_alphas: tuple = (0.4, 0.6, 0.8)) -> dict:
     cutoff = pd.Timestamp(f"{test_season}-08-01")
     m, ratings, draw_params = fit_bundle(df, cutoff)
+    have_xg = df["xg_home"].notna().any()
+    xg_models = {a: dc_fit(df, cutoff, a) for a in xg_alphas} if have_xg else {}
 
+    import elo as elo_mod
     test = df[(df["date"] >= cutoff) & df["comp"].isin(["E0", "UCL"])]
     rows = []
     for _, r in test.iterrows():
-        pred = predict.predict_match(m, r["home_team"], r["away_team"],
-                                     neutral=bool(r["neutral"]),
-                                     elo_ratings=ratings)
-        p_dc = (pred["p_home_win"], pred["p_draw"], pred["p_away_win"])
+        preds = {}
+        for label, mod in [("dc", m)] + [(f"xg{a}", xm) for a, xm in xg_models.items()]:
+            p = predict.predict_match(mod, r["home_team"], r["away_team"],
+                                      neutral=bool(r["neutral"]), elo_ratings=ratings)
+            preds[label] = (p["p_home_win"], p["p_draw"], p["p_away_win"])
+            if label == "dc":
+                tot = p["lambda_home"] + p["lambda_away"]
         rh, ra = ratings.get(r["home_team"], 1500.0), ratings.get(r["away_team"], 1500.0)
-        import elo as elo_mod
-        p_elo = elo_mod.wdl_probs(rh, ra, bool(r["neutral"]), *draw_params)
+        preds["elo"] = elo_mod.wdl_probs(rh, ra, bool(r["neutral"]), *draw_params)
+        if pd.notna(r.get("mkt_h")):
+            preds["market"] = (r["mkt_h"], r["mkt_d"], r["mkt_a"])
         outcome = 0 if r["home_goals"] > r["away_goals"] else (
             1 if r["home_goals"] == r["away_goals"] else 2)
-        rows.append((r["comp"], p_dc, p_elo, outcome,
-                     pred["lambda_home"] + pred["lambda_away"],
-                     r["home_goals"] + r["away_goals"]))
+        rows.append({"comp": r["comp"], "preds": preds, "outcome": outcome,
+                     "pred_tot": tot, "act_tot": r["home_goals"] + r["away_goals"]})
 
-    def metrics(sel):
-        out = {}
-        for label, idx in (("dc", 1), ("elo", 2)):
-            ll = br = acc = 0.0
-            for row in sel:
-                p, o = row[idx], row[3]
-                ll -= np.log(max(p[o], 1e-12))
-                br += sum((p[k] - (1.0 if k == o else 0.0)) ** 2 for k in range(3))
-                acc += 1.0 if int(np.argmax(p)) == o else 0.0
-            n = len(sel)
-            out[label] = {"log_loss": ll / n, "brier": br / n, "accuracy": acc / n, "n": n}
-        return out
+    def metrics(sel, label):
+        ll = br = acc = 0.0
+        for row in sel:
+            p, o = row["preds"][label], row["outcome"]
+            ll -= np.log(max(p[o], 1e-12))
+            br += sum((p[k] - (1.0 if k == o else 0.0)) ** 2 for k in range(3))
+            acc += 1.0 if int(np.argmax(p)) == o else 0.0
+        n = len(sel)
+        return {"log_loss": ll / n, "brier": br / n, "accuracy": acc / n, "n": n}
 
-    res = {"all": metrics(rows),
-           "epl": metrics([r for r in rows if r[0] == "E0"]),
-           "ucl": metrics([r for r in rows if r[0] == "UCL"])}
-    pred_goals = np.mean([r[4] for r in rows])
-    act_goals = np.mean([float(r[5]) for r in rows])
+    model_labels = (["dc"] + [f"xg{a}" for a in xg_models] + ["elo"])
+    res = {seg: {lab: metrics(sel, lab) for lab in model_labels}
+           for seg, sel in (("all", rows),
+                            ("epl", [r for r in rows if r["comp"] == "E0"]),
+                            ("ucl", [r for r in rows if r["comp"] == "UCL"]))}
+
+    # Market benchmark: only matches with closing odds (EPL); score every
+    # model on that same subset so the comparison is apples-to-apples.
+    priced = [r for r in rows if "market" in r["preds"]]
+    res["priced"] = {lab: metrics(priced, lab) for lab in model_labels + ["market"]}         if priced else {}
+
+    best_alpha = None
+    if xg_models:
+        best_alpha = min(xg_models, key=lambda a: res["all"][f"xg{a}"]["log_loss"])
+        if res["all"][f"xg{best_alpha}"]["log_loss"] >= res["all"]["dc"]["log_loss"]:
+            best_alpha = None   # xG must EARN its place in the export
+    res["best_alpha"] = best_alpha
 
     if verbose:
+        names = {"dc": "Dixon-Coles", "elo": "Elo baseline", "market": "Bookmakers",
+                 **{f"xg{a}": f"DC + xG a={a}" for a in xg_models}}
         print(f"\nBack-test — {test_season}-{(test_season + 1) % 100:02d} "
-              f"Premier League + Champions League ({res['all']['dc']['n']} matches)")
-        print(f"{'segment':<10}{'model':<14}{'log-loss':>9}{'brier':>8}{'accuracy':>10}")
-        for seg in ("all", "epl", "ucl"):
-            for label, name in (("dc", "Dixon-Coles"), ("elo", "Elo baseline")):
-                r = res[seg][label]
-                print(f"{seg:<10}{name:<14}{r['log_loss']:>9.4f}{r['brier']:>8.4f}"
+              f"Premier League + Champions League ({len(rows)} matches)")
+        print(f"{'segment':<9}{'model':<16}{'log-loss':>9}{'brier':>8}{'accuracy':>10}")
+        for seg in ("all", "epl", "ucl", "priced"):
+            if not res.get(seg):
+                continue
+            for lab, r in res[seg].items():
+                print(f"{seg:<9}{names[lab]:<16}{r['log_loss']:>9.4f}{r['brier']:>8.4f}"
                       f"{r['accuracy']:>9.1%}  (n={r['n']})")
-        print(f"goals/game: predicted {pred_goals:.2f} vs actual {act_goals:.2f}")
+        print(f"goals/game: predicted {np.mean([r['pred_tot'] for r in rows]):.2f} "
+              f"vs actual {np.mean([float(r['act_tot']) for r in rows]):.2f}")
+        if best_alpha is not None:
+            print(f"[xg] alpha={best_alpha} beats the goals-only fit -> exported as the xG bundle")
+        elif have_xg:
+            print("[xg] no alpha beat the goals-only fit -> xG bundle NOT exported")
     return res
 
 
@@ -519,9 +684,10 @@ def picker_teams(df: pd.DataFrame, last_season: int) -> dict[str, str]:
     return chosen
 
 
-def export(df: pd.DataFrame, note: str) -> None:
+def export(df: pd.DataFrame, note: str, xg_alpha: float | None = None) -> None:
     now = pd.Timestamp(datetime.now().date())
-    m, ratings, draw_params = fit_bundle(df, now + pd.Timedelta(days=1))
+    asof = now + pd.Timedelta(days=1)
+    m, ratings, draw_params = fit_bundle(df, asof)
     last = current_season_start()
     if not (df["date"] >= pd.Timestamp(f"{last}-08-01")).any():
         last -= 1      # new season not underway yet: picker reflects last season
@@ -561,6 +727,23 @@ def export(df: pd.DataFrame, note: str) -> None:
             "draw_params": [round(draw_params[0], 4), round(draw_params[1], 1)],
         },
     }
+
+    # Second bundle fitted on the xG-blended target — the site's "Use xG data"
+    # toggle. Only exported when the back-test says it beats the goals fit.
+    if xg_alpha is not None:
+        mx = dc_fit(df, asof, xg_alpha)
+        data["xg"] = {
+            "teams": {t: {"a": round(mx.strength(t)[0], 6),
+                          "d": round(mx.strength(t)[1], 6),
+                          "w": round(mx.strength(t)[2], 3)} for t in sorted(chosen)},
+            "home_adv": round(mx.home_adv, 4),
+            "avg_goals": round(mx.avg_goals, 4),
+            "rho": round(mx.rho, 5),
+            "goal_scale": 1.0,
+            "elo": elo_js,
+            "draw_params": [round(draw_params[0], 4), round(draw_params[1], 1)],
+            "alpha": xg_alpha,
+        }
     meta = {
         "built": datetime.now().strftime("%Y-%m-%d"),
         "season": f"{last}-{(last + 1) % 100:02d}",
@@ -616,19 +799,24 @@ def main() -> None:
         names_report(df)
         return
 
-    note = ""
+    note, best_alpha = "", None
     if not args.no_backtest:
         test_season = current_season_start()
         if not (df["date"] >= pd.Timestamp(f"{test_season}-09-01")).any():
             test_season -= 1
         res = backtest(df, test_season)
+        best_alpha = res["best_alpha"]
         r = res["all"]["dc"]
         note = (f"back-test on {test_season}-{(test_season + 1) % 100:02d} EPL+UCL: "
                 f"log-loss {r['log_loss']:.4f}, accuracy {r['accuracy']:.1%} "
                 f"(Elo baseline {res['all']['elo']['log_loss']:.4f} / "
                 f"{res['all']['elo']['accuracy']:.1%})")
+        if res.get("priced"):
+            note += (f"; bookmaker closing odds on the same EPL matches: "
+                     f"log-loss {res['priced']['market']['log_loss']:.4f} "
+                     f"vs model {res['priced']['dc']['log_loss']:.4f}")
 
-    export(df, note)
+    export(df, note, best_alpha)
 
 
 if __name__ == "__main__":

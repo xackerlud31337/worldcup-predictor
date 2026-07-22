@@ -69,6 +69,7 @@ function buildList(which, filter=""){
 function selectTeam(which, team){
   if (which === "home") home = team; else away = team;
   unavailable[which].clear();
+  currentMarket = null;   // manual pick invalidates any loaded fixture's odds
   const els = pickerEls(which);
   els.flag.outerHTML = crestImg(team, "flag");
   els.name.textContent = team;
@@ -109,6 +110,7 @@ function recalc(scroll = true){
     away_team: away,
     method: document.getElementById("method").value,
     home_advantage: document.getElementById("home-adv").checked,
+    use_xg: document.getElementById("use-xg").checked,
     adjust: currentAdjust(),
   };
 
@@ -298,6 +300,8 @@ function renderResults(d, scroll = true){
     ml.appendChild(row);
   });
 
+  renderMarketCmp(d);
+
   const tn = document.getElementById("trust-note");
   if (trust < 1){ tn.hidden = false; tn.textContent = "Note: limited recent top-level data for one of these clubs, so this estimate leans on its Elo rating and is less certain."; }
   else tn.hidden = true;
@@ -357,6 +361,61 @@ document.querySelectorAll(".copy-btn[data-copy]").forEach((btn) => {
   };
 });
 
+/* ---------- model vs bookmaker ---------- */
+// Set when the user loads a fixture that carries ESPN (DraftKings) odds;
+// cleared whenever a club is picked by hand.
+let currentMarket = null;
+
+function americanToDecimal(ml){
+  const v = parseFloat(String(ml).replace("+", ""));
+  if (!Number.isFinite(v) || v === 0) return null;
+  return v > 0 ? 1 + v / 100 : 1 + 100 / (-v);
+}
+
+function extractFixtureOdds(ev){
+  const o = (ev.competitions[0].odds || [])[0];
+  const ml = o && o.moneyline;
+  if (!ml) return null;
+  const pick = (side) => {
+    const s = ml[side] || {};
+    return americanToDecimal((s.close && s.close.odds) ?? (s.open && s.open.odds));
+  };
+  const odds = { h: pick("home"), d: pick("draw"), a: pick("away") };
+  return (odds.h && odds.d && odds.a) ? odds : null;
+}
+
+function renderMarketCmp(d){
+  const panel = document.getElementById("market-cmp");
+  const ok = currentMarket &&
+             currentMarket.home === d.home && currentMarket.away === d.away;
+  panel.hidden = !ok;
+  if (!ok) return;
+  const list = document.getElementById("market-cmp-list");
+  const p = d.probabilities;
+  const rows = [
+    [`${d.home} win`, p.home_win, currentMarket.odds.h],
+    ["Draw", p.draw, currentMarket.odds.d],
+    [`${d.away} win`, p.away_win, currentMarket.odds.a],
+  ];
+  list.innerHTML = `<div class="market-row mcmp-head">
+    <span class="market-label">Outcome</span>
+    <span class="mcmp-cell">Model fair</span>
+    <span class="mcmp-cell">Bookmaker</span>
+    <span class="mcmp-cell">Edge</span></div>`;
+  rows.forEach(([label, prob, mkt]) => {
+    const fair = prob > 0.005 ? (1 / prob).toFixed(2) : "99+";
+    const edge = mkt * prob - 1;   // expected profit per unit at the market price
+    const cls = edge > 0.02 ? "pos" : (edge < -0.02 ? "neg" : "");
+    const row = document.createElement("div");
+    row.className = "market-row";
+    row.innerHTML = `<span class="market-label">${label}</span>
+      <span class="mcmp-cell">${fair}</span>
+      <span class="mcmp-cell">${mkt.toFixed(2)}</span>
+      <span class="mcmp-cell edge ${cls}">${edge >= 0 ? "+" : ""}${(edge * 100).toFixed(1)}%</span>`;
+    list.appendChild(row);
+  });
+}
+
 /* ---------- upcoming fixtures (ESPN, EPL + Champions League) ---------- */
 // The model's team names ARE ESPN display names (clubs_build.py canonicalises
 // to them), so most fixtures match directly; the fuzzy fallback catches
@@ -402,7 +461,7 @@ async function loadFixtures(){
       const data = await resp.json();
       return (data.events || [])
         .filter((e) => !e.status.type.completed)
-        .map((e) => ({ ev: e, league: label }));
+        .map((e) => ({ ev: e, league: label, odds: extractFixtureOdds(e) }));
     }));
     const fixtures = results.flat()
       .sort((a, b) => a.ev.date.localeCompare(b.ev.date))
@@ -427,7 +486,7 @@ function fixtureSides(ev){
   return { home: bySide.home, away: bySide.away, neutral: !!comp.neutralSite };
 }
 
-function loadFixtureIntoPickers({ ev }){
+function loadFixtureIntoPickers({ ev, odds }){
   const s = fixtureSides(ev);
   const h = modelTeamName(s.home);
   const a = modelTeamName(s.away);
@@ -437,12 +496,13 @@ function loadFixtureIntoPickers({ ev }){
   }
   selectTeam("home", h);
   selectTeam("away", a);
+  currentMarket = odds ? { home: h, away: a, odds } : null;
   document.getElementById("home-adv").checked = !s.neutral;
   document.querySelector(".matchup-card").scrollIntoView({ behavior: "smooth", block: "start" });
   document.getElementById("calc-btn").click();
 }
 
-function fixtureRow({ ev, league }){
+function fixtureRow({ ev, league, odds }){
   const s = fixtureSides(ev);
   const t = new Date(ev.date);
   let when = "Time TBD";
@@ -460,6 +520,7 @@ function fixtureRow({ ev, league }){
       <span class="fx-mid">vs</span>
       <span class="fx-team away">${s.away || "?"}</span>
     </div>
+    ${odds ? `<div class="fx-odds">market ${odds.h.toFixed(2)} &middot; ${odds.d.toFixed(2)} &middot; ${odds.a.toFixed(2)}</div>` : ""}
     <button type="button" class="fx-load">&#127942; Predict this match</button>
   </div>`;
 }
@@ -475,6 +536,17 @@ async function loadVisitCount() {
       el.hidden = false;
     }
   } catch (e) { /* cosmetic — fail silently */ }
+}
+
+["use-xg", "home-adv", "method"].forEach((id) => {
+  document.getElementById(id).onchange = () => {
+    if (!document.getElementById("results").hidden) recalc(false);
+  };
+});
+if (typeof MODEL_DATA !== "undefined" && !MODEL_DATA.xg) {
+  const t = document.getElementById("use-xg");
+  t.checked = false;
+  t.disabled = true; // exported without the xG bundle
 }
 
 wirePicker("home");

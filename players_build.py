@@ -46,7 +46,7 @@ from collections import defaultdict
 from datetime import datetime
 
 import clubs_build
-from clubs_build import CACHE, canon
+from clubs_build import CACHE, UNDERSTAT_ALIASES, canon, uscanon
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                    "web", "clubs", "players_data.js")
@@ -60,49 +60,6 @@ REPL_FACTOR = 0.65          # bench stand-in = 65% of the position average
 DEF_LEAK = {"GK": 0.08, "D": 0.06}   # extra goals conceded per missing starter
 MAX_PLAYERS = 18            # exported per club
 MIN_SHARE = 0.05            # skip cameo appearances
-
-# Understat spellings that differ from both football-data and ESPN.
-UNDERSTAT_ALIASES = {
-    "RasenBallsport Leipzig": "RB Leipzig",
-    "Borussia M.Gladbach": "Borussia Mönchengladbach",
-    "Paris Saint Germain": "Paris Saint-Germain",
-    "Parma Calcio 1913": "Parma",
-    "Athletic Club": "Athletic Club",
-    "Atletico Madrid": "Atlético Madrid",
-    "Alaves": "Alavés",
-    "Leganes": "Leganés",
-    "Cadiz": "Cádiz",
-    "Almeria": "Almería",
-    "Mainz 05": "1. FSV Mainz 05",
-    "Union Berlin": "1. FC Union Berlin",
-    "Freiburg": "SC Freiburg",
-    "Augsburg": "FC Augsburg",
-    "Wolfsburg": "VfL Wolfsburg",
-    "Hoffenheim": "TSG Hoffenheim",
-    "Bochum": "VfL Bochum",
-    "Darmstadt": "SV Darmstadt 98",
-    "Heidenheim": "1. FC Heidenheim 1846",
-    "FC Heidenheim": "1. FC Heidenheim 1846",
-    "Hamburger SV": "Hamburg SV",
-    "St. Pauli": "FC St. Pauli",
-    "Holstein Kiel": "Holstein Kiel",
-    "Werder Bremen": "Werder Bremen",
-    "Schalke 04": "Schalke 04",
-    "Hertha Berlin": "Hertha Berlin",
-    "Fortuna Duesseldorf": "Fortuna Düsseldorf",
-    "Inter": "Internazionale",
-    "Verona": "Hellas Verona",
-    "Leeds": "Leeds United",
-    "Luton": "Luton Town",
-    "Norwich": "Norwich City",
-    "Saint-Etienne": "Saint-Étienne",
-    "Clermont Foot": "Clermont Foot",
-}
-
-
-def uscanon(name: str) -> str:
-    return canon(UNDERSTAT_ALIASES.get(name, name))
-
 
 def latest_finished_season() -> int:
     # Understat labels a season by its starting year; data for season N

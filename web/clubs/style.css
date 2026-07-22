@@ -817,3 +817,17 @@ a.nav-item:hover { color: #fff; background: rgba(255, 255, 255, .12); }
 @media (max-width: 640px) {
   .squad-cols { grid-template-columns: 1fr; }
 }
+
+/* ------------------------------------------------------------------ *
+ * model vs bookmaker panel + fixture odds line
+ * ------------------------------------------------------------------ */
+#market-cmp .market-row {
+  display: grid;
+  grid-template-columns: 1fr 76px 84px 70px;
+  align-items: center;
+}
+.mcmp-cell { text-align: right; font-variant-numeric: tabular-nums; }
+.mcmp-head { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+.edge.pos { color: #2fd58b; font-weight: 700; }
+.edge.neg { color: #ff7b8a; }
+.fx-odds { color: var(--muted); font-size: .74rem; margin: 2px 0 6px; }
