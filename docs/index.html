@@ -9,7 +9,7 @@
   <!-- social link previews (Open Graph + Twitter) -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="SportMath: sports predictions from pure math">
-  <meta property="og:description" content="Honest win probabilities and fair odds computed from statistical models, live in your browser. Football, UFC and NBA.">
+  <meta property="og:description" content="Honest win probabilities and fair odds computed from statistical models, live in your browser. Football, club football, UFC and NBA.">
   <meta property="og:url" content="https://xackerlud31337.github.io/worldcup-predictor/">
   <meta property="og:image" content="https://xackerlud31337.github.io/worldcup-predictor/og-home.png">
   <meta property="og:image:width" content="1200">
@@ -142,7 +142,7 @@
 
     .sports {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 20px;
       text-align: left;
     }
@@ -307,6 +307,7 @@
   <nav class="topnav" aria-label="Sports">
     <a href="./" class="nav-brand">SportMath</a>
     <a href="football/" class="nav-item">&#9917;<span class="nav-txt"> Football</span></a>
+    <a href="clubs/" class="nav-item">&#127942;<span class="nav-txt"> Clubs</span></a>
     <a href="ufc/" class="nav-item">&#129354;<span class="nav-txt"> UFC</span></a>
     <a href="nba/" class="nav-item">&#127936;<span class="nav-txt"> NBA</span></a>
   </nav>
@@ -325,6 +326,15 @@
           scorelines, victory margins and fair odds, all from a Dixon-Coles model fitted on a
           century of international football.</p>
         <span class="sport-cta">Open the predictor &rarr;</span>
+      </a>
+
+      <a class="sport-card" href="clubs/">
+        <span class="sport-icon">&#127942;</span>
+        <h2>Clubs</h2>
+        <p>Premier League &amp; Champions League: pick any two clubs and get win/draw/loss
+          odds, expected goals, most likely scorelines and fair odds from a Dixon-Coles
+          model fitted on Europe's top leagues.</p>
+        <span class="sport-cta" style="color:#7fb0ff;">Open the predictor &rarr;</span>
       </a>
 
       <a class="sport-card" href="ufc/">

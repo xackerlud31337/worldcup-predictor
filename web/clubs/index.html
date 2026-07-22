@@ -3,24 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SportMath &#9917; World Cup Predictor</title>
-  <meta name="description" content="Pick two teams and get win odds, expected goals and the most likely scorelines from a Dixon-Coles model fitted on a century of international football, running entirely in your browser.">
+  <title>SportMath &#127942; Club Football Predictor</title>
+  <meta name="description" content="Premier League and Champions League predictions: pick two clubs and get win odds, expected goals and the most likely scorelines from a Dixon-Coles model, running entirely in your browser.">
 
   <!-- social link previews (Open Graph + Twitter) -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="SportMath ⚽ World Cup Predictor">
-  <meta property="og:description" content="Pick two teams and get win odds, expected goals and the most likely scorelines from a Dixon-Coles model fitted on a century of international football.">
-  <meta property="og:url" content="https://xackerlud31337.github.io/worldcup-predictor/football/">
-  <meta property="og:image" content="https://xackerlud31337.github.io/worldcup-predictor/football/og-image.png">
+  <meta property="og:title" content="SportMath 🏆 Club Football Predictor">
+  <meta property="og:description" content="Premier League &amp; Champions League: win odds, expected goals and most likely scorelines for any club matchup, computed live in your browser.">
+  <meta property="og:url" content="https://xackerlud31337.github.io/worldcup-predictor/clubs/">
+  <meta property="og:image" content="https://xackerlud31337.github.io/worldcup-predictor/clubs/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="SportMath ⚽ World Cup Predictor">
-  <meta name="twitter:description" content="Win odds, expected goals and most likely scorelines for any international matchup, computed live in your browser.">
-  <meta name="twitter:image" content="https://xackerlud31337.github.io/worldcup-predictor/football/og-image.png">
+  <meta name="twitter:title" content="SportMath 🏆 Club Football Predictor">
+  <meta name="twitter:description" content="Premier League &amp; Champions League: win odds, expected goals and most likely scorelines for any club matchup, computed live in your browser.">
+  <meta name="twitter:image" content="https://xackerlud31337.github.io/worldcup-predictor/clubs/og-image.png">
 
-  <link rel="stylesheet" href="style.css?v=17">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9917;</text></svg>">
+  <link rel="stylesheet" href="style.css?v=1">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#127942;</text></svg>">
 </head>
 <body>
   <!-- glyphs come from CSS so link-preview crawlers don't scrape "i ♥" as page text -->
@@ -29,17 +29,17 @@
 
   <nav class="topnav" aria-label="Sports">
     <a href="../" class="nav-brand">SportMath</a>
-    <a href="./" class="nav-item active">&#9917;<span class="nav-txt"> Football</span></a>
-    <a href="../clubs/" class="nav-item">&#127942;<span class="nav-txt"> Clubs</span></a>
+    <a href="../football/" class="nav-item">&#9917;<span class="nav-txt"> Football</span></a>
+    <a href="./" class="nav-item active">&#127942;<span class="nav-txt"> Clubs</span></a>
     <a href="../ufc/" class="nav-item">&#129354;<span class="nav-txt"> UFC</span></a>
     <a href="../nba/" class="nav-item">&#127936;<span class="nav-txt"> NBA</span></a>
   </nav>
 
   <main class="wrap">
     <header class="hero">
-      <h1>&#9917; World Cup Predictor</h1>
-      <p class="tagline">Pick two teams and see who's likely to win, powered by a
-        Dixon-Coles model fitted on a century of international football.</p>
+      <h1>&#127942; Club Football Predictor</h1>
+      <p class="tagline">Premier League &amp; Champions League: pick two clubs and see who's
+        likely to win, powered by a Dixon-Coles model fitted on Europe's top leagues.</p>
     </header>
 
     <section class="card matchup-card">
@@ -49,12 +49,12 @@
           <div class="picker" id="home-picker">
             <button type="button" class="picker-toggle" aria-haspopup="listbox">
               <span class="flag placeholder"></span>
-              <span class="picker-name muted">Choose team&hellip;</span>
+              <span class="picker-name muted">Choose club&hellip;</span>
               <span class="chev">&#9662;</span>
             </button>
             <div class="picker-menu" hidden>
               <input type="text" class="picker-search" id="home-search"
-                     placeholder="Search teams&hellip;" autocomplete="off">
+                     placeholder="Search clubs&hellip;" autocomplete="off">
               <ul class="picker-list" role="listbox"></ul>
             </div>
           </div>
@@ -70,12 +70,12 @@
           <div class="picker" id="away-picker">
             <button type="button" class="picker-toggle" aria-haspopup="listbox">
               <span class="flag placeholder"></span>
-              <span class="picker-name muted">Choose team&hellip;</span>
+              <span class="picker-name muted">Choose club&hellip;</span>
               <span class="chev">&#9662;</span>
             </button>
             <div class="picker-menu" hidden>
               <input type="text" class="picker-search" id="away-search"
-                     placeholder="Search teams&hellip;" autocomplete="off">
+                     placeholder="Search clubs&hellip;" autocomplete="off">
               <ul class="picker-list" role="listbox"></ul>
             </div>
           </div>
@@ -92,33 +92,37 @@
         </div>
 
         <div class="control toggle-control">
-          <label for="home-adv">Team 1 at home</label>
-          <label class="switch">
-            <input type="checkbox" id="home-adv">
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="control toggle-control">
-          <label for="use-xg" title="Use team strengths fitted with StatsBomb expected-goals data blended in.">
-            Use xG data <span class="info">&#9432;</span>
+          <label for="home-adv" title="Club matches are almost never on neutral ground, so this is on by default. Turn it off for a final on neutral turf.">
+            Team 1 at home <span class="info">&#9432;</span>
           </label>
           <label class="switch">
-            <input type="checkbox" id="use-xg">
+            <input type="checkbox" id="home-adv" checked>
             <span class="slider"></span>
           </label>
-        </div>
-
-        <div class="control">
-          <label for="refit-btn" title="Download the latest international results and rebuild the model in your browser.">
-            Model data <span class="info">&#9432;</span>
-          </label>
-          <button type="button" id="refit-btn" class="refit-tag">&#10227; Refit latest</button>
         </div>
       </div>
 
       <button id="calc-btn" class="calc" disabled>Calculate</button>
       <p id="status" class="status" hidden></p>
+    </section>
+
+    <section id="squads" class="card squads" hidden>
+      <h3>Squads &amp; availability</h3>
+      <p class="squads-hint">Untick anyone who won't play (injury, suspension, rotation)
+        and the odds update. Ratings come from each player's non-penalty xG + xA in the
+        big-five leagues; with a full squad this changes nothing.</p>
+      <div class="squad-cols">
+        <div class="squad" id="squad-home">
+          <h4 class="squad-name"></h4>
+          <div class="squad-list"></div>
+          <p class="squad-impact" hidden></p>
+        </div>
+        <div class="squad" id="squad-away">
+          <h4 class="squad-name"></h4>
+          <div class="squad-list"></div>
+          <p class="squad-impact" hidden></p>
+        </div>
+      </div>
     </section>
 
     <section id="results" class="card results" hidden>
@@ -183,7 +187,7 @@
     </section>
 
     <aside class="card fixtures" id="fixtures">
-      <h3>&#127942; Upcoming World Cup matches</h3>
+      <h3>&#127942; Upcoming matches</h3>
       <div id="fixtures-list" class="fixtures-list">
         <p class="fixtures-status">Loading&hellip;</p>
       </div>
@@ -200,43 +204,34 @@
       <button type="button" id="info-close" class="info-close" aria-label="Close">&times;</button>
       <h2 id="info-title">How this predictor works</h2>
       <p class="info-body">
-        Under the hood this site runs a <b>Dixon-Coles model</b>: a pair of Poisson
-        goal models, one per team, fitted on international results from 1990 to today.
-        Every past match shapes each team's attack and defence rating, but not equally:
-        recent games and big tournaments count far more than ancient friendlies, thanks
-        to an exponential time decay (a result loses half its influence every four years)
-        and per-competition weights (a World Cup match matters roughly twice as much as a
-        friendly). From those ratings the model computes how many goals each side is
-        expected to score, builds a probability grid over every possible scoreline
-        (with the Dixon-Coles correction that fixes the plain Poisson model's blind spot
-        on low-scoring draws) and then runs thousands of Monte-Carlo simulations to
-        produce the win/draw/loss percentages and most likely scorelines you see. For
-        teams with little recent data the estimate is blended with an Elo-rating prior,
-        so one obscure fixture can't produce a wild prediction. Everything runs locally
-        in your browser, no server involved.
+        Under the hood this page runs the same <b>Dixon-Coles model</b> as the
+        international predictor, but fitted on club football: nine seasons of the
+        Premier League, La Liga, Bundesliga, Serie A and Ligue 1 (plus six feeder
+        leagues), together with every Champions League match in that window. The
+        Champions League games matter twice: they sharpen each club's rating <i>and</i>
+        they are the only matches where clubs from different leagues meet, so they are
+        what puts Arsenal and Bayern on one comparable scale. Because club squads
+        change every transfer window, results lose half their influence per
+        <b>year</b> (the international model uses four): the ratings live in the
+        present. From each club's attack and defence rating the model computes
+        expected goals, builds a probability grid over every scoreline (with the
+        Dixon-Coles low-score correction) and reads off the win/draw/loss odds,
+        margins and fair odds. Clubs with little recent top-level data are blended
+        toward an Elo prior. In back-testing on the most recent season it beat that
+        Elo baseline on every metric, most clearly in the Champions League.
+        Everything runs locally in your browser, no server involved.
       </p>
       <h3>What the tags mean</h3>
       <dl class="glossary">
         <dt>Expected goals (xG home / xG away)</dt>
         <dd>The model's average goals per match for each side: if this matchup were
-          played many times, this is what each team would score on average. A 1.8&ndash;0.9
+          played many times, this is what each club would score on average. A 1.8&ndash;0.9
           reading is not a score prediction; it says team&nbsp;1 creates about twice
           team&nbsp;2's scoring output.</dd>
-        <dt>Use xG data</dt>
-        <dd>Switches to team strengths fitted with StatsBomb expected-goals numbers
-          blended into the actual results. xG measures the quality of chances created
-          rather than just goals scored, which is often a better signal of how good a
-          team really is than the final scoreline.
-          <br><b>When to use which:</b> turn xG <b>on</b> when you want the fairest
-          read on which team is genuinely stronger, since it filters out finishing
-          luck. Turn it <b>off</b> after pressing <i>Refit latest</i>: the refit
-          updates only the standard model, so with xG off your prediction includes
-          the very newest results.</dd>
-        <dt>&#10227; Refit latest</dt>
-        <dd>Downloads the newest international results (~4&nbsp;MB) and re-fits the entire
-          model right in your browser, so matches played since this site was published
-          are taken into account. Takes a few seconds; applies to the standard model
-          (the xG bundle keeps its original fit).</dd>
+        <dt>Team 1 at home</dt>
+        <dd>Applies the fitted home-advantage boost (roughly 24% more goals). Club
+          matches are almost never on neutral ground, so it's <b>on</b> by default;
+          turn it off for a cup final on neutral turf.</dd>
         <dt>Dixon-Coles vs Skellam</dt>
         <dd><b>Dixon-Coles</b> evaluates the full scoreline matrix with the low-score
           correction, the accurate choice. <b>Skellam</b> approximates using only the
@@ -257,15 +252,27 @@
         <dt>Victory margin</dt>
         <dd>The same probabilities regrouped by the final gap in goals instead of the
           exact score: "how big will the difference be?" rather than "exactly
-          which scoreline?". Like dice: rolling exactly 4+3 is rare, but a total of 7
-          is the most common sum, because many combinations produce it. Likewise a
-          team's "win by 2+" bundles 2-0, 3-0, 3-1, 4-1&hellip; into one group that can
-          be the most likely outcome even though each exact score looks small alone.
-          Works for any matchup; between equals, "draw" and "by 1" simply become
-          the big bars.</dd>
-        <dt>Team 1 at home</dt>
-        <dd>Applies the fitted home-advantage boost (roughly 25% more goals) to
-          team&nbsp;1. Leave it off for a neutral venue, as in most World Cup matches.</dd>
+          which scoreline?". A club's "win by 2+" bundles 2-0, 3-0, 3-1, 4-1&hellip; into
+          one group that can be the most likely outcome even though each exact score
+          looks small alone.</dd>
+        <dt>Squads &amp; availability</dt>
+        <dd>Each player carries a rating built from his <b>non-penalty expected goals +
+          expected assists per 90 minutes</b> over the last two seasons (recent season
+          counting double), shrunk toward his position's average so short stints don't
+          produce absurd numbers. A club's baseline adds up its players' ratings weighted
+          by how much they actually play, and by construction that matches the club's
+          team rating — so with everyone available, the player layer changes
+          <b>nothing</b>. Unticking a player replaces him with a bench-level stand-in
+          and rescales the club's attack; missing defenders and goalkeepers instead
+          concede a little extra to the opponent (a flat approximation — defensive value
+          can't be measured from xG). Player data covers the big-five leagues, so clubs
+          from other countries show no squad list. Ratings reflect last season's squads
+          until the new season's data starts accumulating.</dd>
+        <dt>Cross-league matchups</dt>
+        <dd>Comparing clubs from different leagues (say Liverpool vs Bayern) leans on
+          the Champions League games linking those leagues. That works well for regular
+          European participants; for clubs that rarely play in Europe the comparison
+          is rougher &mdash; the model will tell you when its data is thin.</dd>
       </dl>
     </div>
   </div>
@@ -276,7 +283,7 @@
       <h2 id="donate-title">&#9829; Support the project</h2>
       <p class="info-body">
         This predictor is free, open and runs entirely in your browser. If it made
-        your World Cup a little more fun, you can chip in to keep it running and
+        the season a little more fun, you can chip in to keep it running and
         improving. Any amount is hugely appreciated!
       </p>
       <div class="donate-option">
@@ -304,10 +311,10 @@
     </div>
   </div>
 
-  <script src="model_data.js?v=3"></script>
-  <script src="predictor.js?v=11"></script>
-  <script src="refit.js?v=3"></script>
-  <script src="app.js?v=12"></script>
+  <script src="club_model_data.js?v=1"></script>
+  <script src="players_data.js?v=1"></script>
+  <script src="predictor.js?v=1"></script>
+  <script src="app.js?v=1"></script>
   <!-- GoatCounter analytics (private dashboard at xackerlud-worldcup.goatcounter.com) -->
   <script data-goatcounter="https://xackerlud-worldcup.goatcounter.com/count"
           async src="//gc.zgo.at/count.js"></script>

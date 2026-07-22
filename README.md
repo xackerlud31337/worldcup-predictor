@@ -1,7 +1,7 @@
 # SportMath
 
 **Live site: [xackerlud31337.github.io/worldcup-predictor](https://xackerlud31337.github.io/worldcup-predictor/)** —
-football, UFC and NBA predictors running entirely in the browser.
+football, club football (Premier League & Champions League), UFC and NBA predictors running entirely in the browser.
 
 ## World Cup Match-Result Predictor
 
@@ -156,6 +156,8 @@ non-neutral venue):
 | `statsbomb.py`  | xG    | Download StatsBomb event data, extract shots with x/y coordinates |
 | `xg.py`         | xG    | Expected-goals model from shot geometry; blend xG into the fit |
 | `main.py`       | —     | CLI wiring it all together |
+| `clubs_build.py`| web   | Club model (EPL + UCL): download, fit, back-test, export to `web/clubs/` |
+| `players_build.py`| web | Player ratings (Understat npxG+xA) for the squad toggles on the clubs page |
 
 Each module has a runnable `__main__` smoke test (e.g. `python model.py`).
 
@@ -198,6 +200,65 @@ for ridge in [0.25, 0.5, 1.0]:
         res = [v.backtest_tournament(y, ridge=ridge, half_life=hl, verbose=False)
                for y in (2018, 2022)]
         print(ridge, hl, np.mean([r['dc']['log_loss'] for r in res]))
+```
+
+## Club football (Premier League & Champions League)
+
+`clubs_build.py` fits the same Dixon-Coles machinery (it imports `model.fit` and
+`predict.predict_match`, nothing is duplicated) on club football and dumps a
+static bundle to `web/clubs/` for the site:
+
+- **Data**: football-data.co.uk season CSVs for the big-five leagues plus six
+  feeder leagues, and ESPN's public API for every Champions League match —
+  the UCL games are the only cross-league observations, so they are what puts
+  Arsenal and Bayern on one comparable scale.
+- **Club-specific tuning**: half-life of **1 year** (clubs play ~50 matches a
+  season and squads turn over every window; the international model uses 4)
+  and `goal_scale = 1.0` (club data has no cagey-qualifier bias — the
+  back-test confirms it: predicted 3.04 goals/game vs actual 2.99).
+- **Elo prior**: a K=20 club Elo doubles as the naive baseline and as the
+  blend target for thin-data teams (UCL qualifiers from uncovered leagues).
+
+Back-test, fitting only on data before the 2025-26 season and predicting its
+Premier League + Champions League matches (569 games):
+
+| Segment | Model        | Log-loss | Brier  | Accuracy |
+|---------|--------------|---------:|-------:|---------:|
+| All     | Dixon-Coles  |   1.0148 | 0.6050 |    51.7% |
+| All     | Elo baseline |   1.0517 | 0.6297 |    47.6% |
+| EPL     | Dixon-Coles  |   1.0518 | 0.6322 |    47.1% |
+| UCL     | Dixon-Coles  |   0.9403 | 0.5504 |    60.8% |
+
+```bash
+python3 clubs_build.py               # build from cache + back-test + export
+python3 clubs_build.py --download    # refresh the current season first
+python3 clubs_build.py --names       # team-name reconciliation report
+```
+
+### The player layer
+
+`players_build.py` adds per-player ratings on top of the team model, from
+Understat's free per-player npxG/xA data for the big-five leagues (one POST
+per league-season, cached):
+
+- A player's rating = **(npxG + xA) per 90** pooled over the last two seasons
+  (recent season double-weighted), shrunk toward his position's league
+  average by minutes played; his availability share = minutes / possible.
+- A club's baseline S0 = Σ rating·share over its squad, which by construction
+  tracks its real xG output — so with a full squad the player layer changes
+  **nothing** and all Layer-1 back-test results stand unchanged.
+- On the site, each club shows its squad with **in/out toggles**: removing a
+  player swaps in a bench-level stand-in and rescales the club's attack
+  (Haaland out ⇒ Man City attack −13%); missing defenders/keepers instead
+  leak extra goals to the opponent (a flat approximation, stated as such).
+- Squad assignment is by last season's minutes (mid-season movers resolved via
+  their previous club), so summer transfers appear once the new season's data
+  accumulates — re-run both build scripts during the season to refresh.
+
+```bash
+python3 players_build.py             # build from cache
+python3 players_build.py --download  # refresh Understat data
+python3 players_build.py --names     # club-name reconciliation report
 ```
 
 ## Notes / possible next steps
