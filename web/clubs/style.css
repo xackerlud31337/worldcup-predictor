@@ -8,9 +8,9 @@
   --muted: #9fb2c2;
   --line: rgba(255, 255, 255, .16);
   --field: rgba(255, 255, 255, .08);
-  --accent: #0aa860;      /* pitch green */
-  --accent-dark: #078a4e;
-  --accent-light: #2fd58b; /* readable green on dark glass */
+  --accent: #3b82f6;      /* club blue — distinct from the internationals' pitch green */
+  --accent-dark: #2563eb;
+  --accent-light: #7fb0ff; /* readable blue on dark glass */
   --home: #2f6fed;        /* team 1 blue */
   --draw: #97a3ae;        /* neutral grey */
   --away: #e5484d;        /* team 2 red */
@@ -70,7 +70,7 @@ body {
   border-radius: 999px;
 }
 a.nav-item:hover { color: #fff; background: rgba(255, 255, 255, .12); }
-.nav-item.active { color: #fff; background: rgba(10, 168, 96, .35); }
+.nav-item.active { color: #fff; background: rgba(59, 130, 246, .35); }
 .nav-item.soon { cursor: default; opacity: .65; }
 .nav-item.soon i {
   font-style: normal;
@@ -183,7 +183,7 @@ a.nav-item:hover { color: #fff; background: rgba(255, 255, 255, .12); }
   cursor: pointer;
   font-size: .95rem;
 }
-.picker-list li:hover, .picker-list li.active { background: rgba(10, 168, 96, .25); }
+.picker-list li:hover, .picker-list li.active { background: rgba(59, 130, 246, .25); }
 .picker-list li.empty { color: var(--muted); cursor: default; }
 .picker-list li.empty:hover { background: none; }
 
@@ -397,7 +397,7 @@ a.nav-item:hover { color: #fff; background: rgba(255, 255, 255, .12); }
 .score-fill {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), #35c586);
+  background: linear-gradient(90deg, var(--accent), #60a5fa);
   border-radius: 6px;
   width: 0;
   transition: width .6s cubic-bezier(.2, .8, .2, 1);
@@ -449,7 +449,7 @@ a.nav-item:hover { color: #fff; background: rgba(255, 255, 255, .12); }
   text-align: center;
   padding: 3px 8px;
   border-radius: 6px;
-  background: rgba(10, 168, 96, .18);
+  background: rgba(59, 130, 246, .18);
   color: var(--accent-light);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -488,7 +488,7 @@ a.nav-item:hover { color: #fff; background: rgba(255, 255, 255, .12); }
 }
 .refit-tag:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-light); }
 .refit-tag:disabled { opacity: .65; cursor: progress; }
-.refit-tag.done { border-color: var(--accent); color: var(--accent-light); background: rgba(10, 168, 96, .18); }
+.refit-tag.done { border-color: var(--accent); color: var(--accent-light); background: rgba(59, 130, 246, .18); }
 
 /* ---------- today's fixtures ---------- */
 .fixtures { padding: 22px; }
@@ -550,7 +550,7 @@ a.nav-item:hover { color: #fff; background: rgba(255, 255, 255, .12); }
   cursor: pointer;
   transition: border-color .15s, background .15s;
 }
-.fx-load:hover { border-color: var(--accent); background: rgba(10, 168, 96, .18); }
+.fx-load:hover { border-color: var(--accent); background: rgba(59, 130, 246, .18); }
 
 /* dock the box on the side once there's room next to the main column */
 @media (min-width: 1560px) {
