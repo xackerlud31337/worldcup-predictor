@@ -25,7 +25,7 @@ body {
                "Helvetica Neue", Arial, sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(1100px 500px at 50% -100px, #1d4d3a 0%, transparent 60%),
+    radial-gradient(1100px 500px at 50% -100px, #1d3a5c 0%, transparent 60%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
   background-attachment: fixed;
   min-height: 100vh;
